@@ -105,7 +105,9 @@ function render() {
  const multipleChoice = starter.find(row => row[0] === id);
  element('div',mode+' · '+(session.index+1)+' of '+session.order.length,card).className='meta';
  const bar=element('progress','',card); bar.max=session.order.length; bar.value=session.index; bar.setAttribute('aria-label','Questions completed');
- element('p',question.category+' · '+question.topic,card).className='topic';
+ const subject = element('p','',card);
+ element('span',question.category,subject).className='category';
+ subject.append(' · '+question.topic);
  element('h2',question.question,card);
  function advance() {
   session.index++; session.revealed=false; session.choices=[]; session.picked=null;
