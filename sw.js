@@ -1,6 +1,6 @@
 const prefix = 'civics:' + self.registration.scope + ':';
-const version = prefix + '4';
-const assets = ['./','./index.html','./study.js','./questions.js','./app.webmanifest','./icon-180.png?v=study-eagle','./icon-192.png?v=study-eagle','./icon-512.png?v=study-eagle'];
+const version = prefix + '5';
+const assets = ['./','./index.html','./study.js','./questions.js','./app.webmanifest','./icon-180.png?v=flag-book','./icon-192.png?v=flag-book','./icon-512.png?v=flag-book'];
 self.addEventListener('install', event => {
  event.waitUntil(caches.open(version).then(cache => cache.addAll(assets)));
 });
