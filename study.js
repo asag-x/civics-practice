@@ -33,14 +33,30 @@ selector.onchange = () => {
 function sessions() {
  return state.deck === 'full' ? state.fullSessions : state.sessions;
 }
+// 2027 Texas study answers, verified November 26, 2026.
+const officials = {
+  23: { answers: ['Ted Cruz', 'James Talarico (term begins January 3, 2027)'], note: 'Name one Texas senator.' },
+  29: { answers: ['Melissa (District 3): Keith Self', 'Carrollton (District 26): Brandon Gill'], note: 'Give the name for your home district. Carrollton spans multiple districts.' },
+  30: { answers: [], note: 'Mike Johnson was Speaker on November 26, 2026. Hakeem Jeffries was nominated for the next Congress. Check the House result before your 2027 interview.' },
+  38: { answers: ['Donald Trump'] },
+  39: { answers: ['JD Vance'] },
+  57: { answers: ['John Roberts'] },
+  61: { answers: ['Gina Hinojosa (after her January 19, 2027 inauguration)'], note: 'Before the inauguration, the Texas governor is Greg Abbott.' }
+};
 function showAnswers(card, question) {
  const box = element('div','',card);
  box.className = 'answer';
- const list = element('ul','',box);
- for (const answer of question.answers) element('li',answer,list);
+ const official = officials[question.id];
+ const answers = official ? official.answers : question.answers;
+ if (answers.length) {
+  const list = element('ul','',box);
+  for (const answer of answers) element('li',answer,list);
+ }
+ if (official?.note) element('p',official.note,box);
  const lookups = {
   23:['Find your senators','https://www.senate.gov/senators/'],
   29:['Find your representative','https://www.house.gov/representatives/find-your-representative'],
+  30:['Verify the Speaker on the House website','https://www.house.gov/leadership'],
   61:['Find your governor','https://www.usa.gov/state-governor'],
   62:['Find your state government','https://www.usa.gov/state-governments']
  };
