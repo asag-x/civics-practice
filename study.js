@@ -1,5 +1,5 @@
 // Each entry contains the USCIS question number, prompt, accepted answers, and quiz distractors.
-const deck = [
+const starter = [
  [2,'What is the supreme law of the land?',['The U.S. Constitution'],['The Declaration of Independence','The Articles of Confederation']],
  [5,'How are changes made to the U.S. Constitution?',['Amendments','The amendment process'],['Executive orders','Presidential pardons']],
  [7,'How many amendments does the U.S. Constitution have?',['27'],['10','50']],
@@ -12,7 +12,7 @@ const deck = [
  [27,'How many senators does each state have?',['2'],['1','4']]
 ];
 const key = 'civics-practice-v1';
-const ids = deck.map(row => row[0]);
+const starterIds = starter.map(row => row[0]);
 function shuffle(items) {
  const copy = [...items];
  for (let i = copy.length - 1; i > 0; i--) {
@@ -22,14 +22,40 @@ function shuffle(items) {
  return copy;
 }
 const modes = ['Flashcards','Random quiz','Review'];
-const state = { mode:modes[0], marks:{}, sessions:{} };
+const state = { mode:modes[0], marks:{}, sessions:{}, deck:"starter", fullSessions:{} };
 try { Object.assign(state, JSON.parse(localStorage.getItem(key)) || {}); } catch {}
+const selector = document.querySelector('#deck');
+selector.value = state.deck;
+selector.onchange = () => {
+ state.deck = selector.value;
+ render();
+};
+function sessions() {
+ return state.deck === 'full' ? state.fullSessions : state.sessions;
+}
+function showAnswers(card, question) {
+ const box = element('div','',card);
+ box.className = 'answer';
+ const list = element('ul','',box);
+ for (const answer of question.answers) element('li',answer,list);
+ const lookups = {
+  23:['Find your senators','https://www.senate.gov/senators/'],
+  29:['Find your representative','https://www.house.gov/representatives/find-your-representative'],
+  61:['Find your governor','https://www.usa.gov/state-governor'],
+  62:['Find your state government','https://www.usa.gov/state-governments']
+ };
+ const lookup = lookups[question.id] || (question.answers[0].includes('uscis.gov/citizenship/testupdates') && ['Check the current answer at USCIS','https://www.uscis.gov/citizenship/testupdates']);
+ if (lookup) {
+  const link = element('a',lookup[0],box);
+  link.href = lookup[1];
+ }
+}
 function save() {
  try { localStorage.setItem(key,JSON.stringify(state)); }
  catch { document.querySelector('#storage').textContent = 'Storage is unavailable. Progress lasts for this visit.'; }
 }
 function start(mode,questions) {
- state.sessions[mode] = {order:questions,index:0,revealed:false,choices:[],picked:null,score:0,missed:[]};
+ sessions()[mode] = {order:questions,index:0,revealed:false,choices:[],picked:null,score:0,missed:[]};
 }
 function element(tag,message,parent) {
  const el = document.createElement(tag);
@@ -50,12 +76,14 @@ function render() {
  for (const mode of modes) {
   button(nav,mode,() => { state.mode = mode; }).setAttribute('aria-pressed',String(mode===state.mode));
  }
+ const full = state.deck === 'full';
+ const ids = full ? questions.map(q => q.id) : starterIds;
  const review = ids.filter(id => state.marks[id]==='again');
  const known = ids.filter(id => state.marks[id]==='known');
- document.querySelector('#summary').textContent = known.length+' of 10 learned · '+review.length+' to review';
+ document.querySelector('#summary').textContent = known.length+' of '+ids.length+' learned · '+review.length+' to review';
  const mode = state.mode;
- if (!state.sessions[mode] && mode===modes[0]) start(mode,[...ids]);
- const session = state.sessions[mode];
+ if (!sessions()[mode] && mode===modes[0]) start(mode,[...ids]);
+ const session = sessions()[mode];
  const quiz = mode===modes[1];
  if (!session || session.index>=session.order.length) {
   const label = session ? (quiz ? 'Quiz complete' : 'Round complete') : mode;
@@ -65,7 +93,7 @@ function render() {
    else element('p','Choose a round length. Questions are shuffled each time.',card);
    const actions = element('div','',card); actions.className='actions';
    if (session?.missed.length) button(actions,'Retry missed ('+session.missed.length+')',()=>start(mode,shuffle(session.missed)),'primary');
-   for (const n of [5,10]) button(actions,n+' questions',()=>start(mode,shuffle(ids).slice(0,n)));
+   for (const n of (full ? [5,10,20,128] : [5,10])) button(actions,n+' questions',()=>start(mode,shuffle(ids).slice(0,n)));
   } else if (mode===modes[2]) {
    element('p',review.length ? review.length+' cards are ready to practice.' : 'Cards marked “Practice again” and missed quiz questions appear here.',card);
    if (review.length) button(card,'Practice review cards',()=>start(mode,shuffle(review)),'primary');
@@ -73,14 +101,17 @@ function render() {
   save(); return;
  }
  const id = session.order[session.index];
- const [,prompt,answers,distractors] = deck.find(row=>row[0]===id);
+ const question = questions.find(q => q.id === id);
+ const multipleChoice = starter.find(row => row[0] === id);
  element('div',mode+' · '+(session.index+1)+' of '+session.order.length,card).className='meta';
  const bar=element('progress','',card); bar.max=session.order.length; bar.value=session.index; bar.setAttribute('aria-label','Questions completed');
- element('h2',prompt,card);
+ element('p',question.category+' · '+question.topic,card).className='topic';
+ element('h2',question.question,card);
  function advance() {
   session.index++; session.revealed=false; session.choices=[]; session.picked=null;
  }
- if (quiz) {
+ if (quiz && multipleChoice) {
+  const [, ,answers,distractors] = multipleChoice;
   if (!session.choices.length) session.choices=shuffle([answers[0],...distractors]);
   const choices=element('div','',card); choices.className='choices';
   for (const choice of session.choices) {
@@ -97,12 +128,13 @@ function render() {
    button(card,session.index+1===session.order.length?'See result':'Next question',advance,'primary');
   }
  } else if (!session.revealed) {
+  if (quiz) element('p','Answer aloud, then check your response.',card);
   button(card,'Show answer',()=>{session.revealed=true;},'primary');
  } else {
-  element('div',answers.join(' / '),card).className='answer';
+  showAnswers(card,question);
   const actions=element('div','',card); actions.className='actions';
-  button(actions,'Got it',()=>{state.marks[id]='known';advance();},'primary');
-  button(actions,'Practice again',()=>{state.marks[id]='again';advance();});
+  button(actions,'Got it',()=>{state.marks[id]='known';if(quiz) session.score++;advance();},'primary');
+  button(actions,'Practice again',()=>{state.marks[id]='again';if(quiz) session.missed.push(id);advance();});
  }
  save();
 }

@@ -1,6 +1,6 @@
 # Civics Practice
 
-Ten sample questions from the official USCIS 2025 civics question bank. Flashcards, five- or ten-question quizzes, missed-question review, and progress saved on the device.
+Choose the 10-question starter deck or all 128 official 2025 USCIS questions. Every question shows its USCIS category and topic. Full-deck quizzes mix multiple-choice and self-graded oral practice. Flashcards, missed-question review, and saved sessions work offline after the first online load.
 
 ## Publish with GitHub Pages
 
